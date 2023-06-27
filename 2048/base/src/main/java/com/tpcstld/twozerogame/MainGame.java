@@ -3,14 +3,20 @@ package com.tpcstld.twozerogame;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
+
 import androidx.annotation.NonNull;
 
 import com.tpcstld.twozerogame.snapshot.SnapshotData;
 import com.tpcstld.twozerogame.snapshot.SnapshotManager;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+
+import java.io.IOException;
+import java.util.UUID;
 
 public class MainGame {
 
@@ -46,9 +52,13 @@ public class MainGame {
     AnimationGrid aGrid;
     boolean canUndo;
     public long score = 0;
+    public UUID gameId = null;
     long highScore = 0;
     long lastScore = 0;
     private long bufferScore = 0;
+    private final String fileHeader = "{\n \"version\": 1,\n";
+    private File stateFile;
+    public int moveNumber = 1;
 
     MainGame(Context context, MainView view) {
         mContext = context;
@@ -56,7 +66,12 @@ public class MainGame {
         endingMaxValue = (int) Math.pow(2, view.numCellTypes - 1);
     }
 
-    void newGame() {
+    void newGame(Settings s) {
+        if(s == null || s.empty){
+            newGame();
+            return;
+        }
+
         if (grid == null) {
             grid = new Grid(numSquaresX, numSquaresY);
         } else {
@@ -65,14 +80,66 @@ public class MainGame {
             grid.clearGrid();
         }
         aGrid = new AnimationGrid(numSquaresX, numSquaresY);
+        highScore = s.highScore;
+        moveNumber = s.moveNumber;
+        score = s.score;
+        gameState = s.gameState;
+        gameId = s.gameId;
+
+        stateFile = new File(mContext.getFilesDir(),gameId.toString()+".json");
+
+        grid.field = s.field;
+        grid.undoField = s.undoField;
+
+        mView.refreshLastTime = true;
+        mView.resyncTime();
+        mView.invalidate();
+    }
+
+    void newGame(){
+        if (grid == null) {
+            grid = new Grid(numSquaresX, numSquaresY);
+        } else {
+            prepareUndoState();
+            saveUndoState();
+            grid.clearGrid();
+        }
+        aGrid = new AnimationGrid(numSquaresX, numSquaresY);
+
         highScore = getHighScore();
+
+        moveNumber = 1;
         if (score >= highScore) {
             highScore = score;
             recordHighScore();
         }
         score = DebugTools.getStartingScore();
         gameState = GAME_NORMAL;
+        if(stateFile == null && gameId != null){
+            stateFile = new File(mContext.getFilesDir(),gameId.toString()+".json");
+        }
+        if (stateFile != null) {
+            try {
+                FileWriter writer = new FileWriter(stateFile, true);
+                writer.write("]\n}");
+                writer.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        gameId = UUID.randomUUID();
+        stateFile = new File(mContext.getFilesDir(),gameId.toString()+".json");
+        try {
+            FileWriter writer = new FileWriter(stateFile, true);
+            writer.write(fileHeader);
+            writer.write("\"ID\": \"" + gameId.toString() + "\",\n \"moves\": [\n");
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         addStartTiles();
+        saveState();
+
         mView.showHelp = firstRun();
         mView.refreshLastTime = true;
         mView.resyncTime();
@@ -184,6 +251,8 @@ public class MainGame {
             gameState = lastGameState;
             mView.refreshLastTime = true;
             mView.invalidate();
+            saveState();
+            //TODO: Maybe add a flag in file
         }
     }
 
@@ -268,6 +337,7 @@ public class MainGame {
         if (moved) {
             saveUndoState();
             addRandomTile();
+            saveState();
             checkLose();
         }
         mView.resyncTime();
@@ -386,5 +456,36 @@ public class MainGame {
 
     boolean canContinue() {
         return !(gameState == GAME_ENDLESS || gameState == GAME_ENDLESS_WON);
+    }
+
+    private void saveState() {
+        if (stateFile != null && grid != null) {
+            try {
+                FileWriter writer = new FileWriter(stateFile, true);
+                String data = "{\n \"move\": "+ moveNumber +",\n\"grid\": [";
+                for (int xx = 0; xx < numSquaresX; xx++) {
+                    for (int yy = 0; yy < numSquaresY; yy++) {
+                        if (grid.field[xx][yy] != null){
+                            int cellVal = grid.field[xx][yy].getValue();
+                            int val = (int) (cellVal == 0 ? 0 : Math.log(cellVal) / Math.log(2));
+                            data += String.valueOf(val);
+                        } else {
+                            data += "0";
+                        }
+                        data += ",";
+                    }
+                }
+                data += "], \n  \"score\": " + (score);
+                if (!canUndo) {
+                    data += ",\n  \"undo\": true";
+                }
+                data += "\n},\n";
+                writer.write(data);
+                writer.close();
+                moveNumber++;
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
     }
 }

@@ -74,10 +74,11 @@ public class MainView extends View {
     private int titleWidthHighScore;
     private int titleWidthScore;
 
-    public MainView(Context context) {
+    public MainView(Context context, Settings s) {
         super(context);
 
         Resources resources = context.getResources();
+        hasSaveState = hasSaveState;
         //Loading resources
         game = new MainGame(context, this);
         try {
@@ -93,7 +94,7 @@ public class MainView extends View {
             Log.e(TAG, "Error getting assets?", e);
         }
         setOnTouchListener(new InputListener(this));
-        game.newGame();
+        game.newGame(s);
     }
 
     private static int log2(int n) {

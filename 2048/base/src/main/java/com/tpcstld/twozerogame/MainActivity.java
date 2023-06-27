@@ -22,19 +22,25 @@ import com.google.android.gms.tasks.Task;
 import com.tpcstld.twozerogame.snapshot.SnapshotData;
 import com.tpcstld.twozerogame.snapshot.SnapshotManager;
 
+import java.util.UUID;
+
 public class MainActivity extends AppCompatActivity {
 
-    private static final String WIDTH = "width";
-    private static final String HEIGHT = "height";
-    private static final String SCORE = "score";
-    private static final String HIGH_SCORE = "high score temp";
-    private static final String UNDO_SCORE = "undo score";
-    private static final String CAN_UNDO = "can undo";
-    private static final String UNDO_GRID = "undo";
-    private static final String GAME_STATE = "game state";
-    private static final String UNDO_GAME_STATE = "undo game state";
+    public static final String WIDTH = "width";
+    public static final String HEIGHT = "height";
+    public static final String SCORE = "score";
+    public static final String HIGH_SCORE = "high score temp";
+    public static final String UNDO_SCORE = "undo score";
+    public static final String CAN_UNDO = "can undo";
+    public static final String UNDO_GRID = "undo";
+    public static final String GAME_STATE = "game state";
+    public static final String UNDO_GAME_STATE = "undo game state";
 
     private static final String NO_LOGIN_PROMPT = "no_login_prompt";
+
+    public static final String MOVE_COUNT = "number of moves";
+
+    public static final String GAME_ID = "unique game identifier";
 
     private static final int RC_SIGN_IN = 9001;
 
@@ -45,16 +51,9 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        view = new MainView(this);
-
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-        view.hasSaveState = settings.getBoolean("save_state", false);
-
-        if (savedInstanceState != null) {
-            if (savedInstanceState.getBoolean("hasState")) {
-                load();
-            }
-        }
+        Settings s = new Settings();
+        s.load(this);
+        view = new MainView(this, s);
         setContentView(view);
     }
 
@@ -97,7 +96,7 @@ public class MainActivity extends AppCompatActivity {
         Tile[][] field = view.game.grid.field;
         Tile[][] undoField = view.game.grid.undoField;
         editor.putInt(WIDTH, field.length);
-        editor.putInt(HEIGHT, field.length);
+        editor.putInt(HEIGHT, field[0].length);
         for (int xx = 0; xx < field.length; xx++) {
             for (int yy = 0; yy < field[0].length; yy++) {
                 if (field[xx][yy] != null) {
@@ -119,14 +118,16 @@ public class MainActivity extends AppCompatActivity {
         editor.putBoolean(CAN_UNDO, view.game.canUndo);
         editor.putInt(GAME_STATE, view.game.gameState);
         editor.putInt(UNDO_GAME_STATE, view.game.lastGameState);
+        editor.putInt(MOVE_COUNT, view.game.moveNumber);
+        editor.putString(GAME_ID, view.game.gameId.toString());
         editor.apply();
     }
 
-    protected void onResume() {
+    /*protected void onResume() {
         super.onResume();
         load();
         signInToGoogle();
-    }
+    }*/
 
     private void load() {
         //Stopping all animations
@@ -157,6 +158,8 @@ public class MainActivity extends AppCompatActivity {
         view.game.canUndo = settings.getBoolean(CAN_UNDO, view.game.canUndo);
         view.game.gameState = settings.getInt(GAME_STATE, view.game.gameState);
         view.game.lastGameState = settings.getInt(UNDO_GAME_STATE, view.game.lastGameState);
+        view.game.moveNumber = settings.getInt(MOVE_COUNT, view.game.moveNumber);
+        view.game.gameId = UUID.fromString(settings.getString(GAME_ID, view.game.gameId.toString()));
     }
 
     /**
