@@ -1,5 +1,10 @@
 package com.tpcstld.twozerogame;
 
+import static androidx.core.content.ContextCompat.getSystemService;
+
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -85,11 +90,6 @@ public class MainActivity extends AppCompatActivity {
         save();
     }
 
-    protected void onPause() {
-        super.onPause();
-        save();
-    }
-
     private void save() {
         SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
         SharedPreferences.Editor editor = settings.edit();
@@ -123,43 +123,9 @@ public class MainActivity extends AppCompatActivity {
         editor.apply();
     }
 
-    /*protected void onResume() {
+    protected void onResume() {
         super.onResume();
-        load();
         signInToGoogle();
-    }*/
-
-    private void load() {
-        //Stopping all animations
-        view.game.aGrid.cancelAnimations();
-
-        SharedPreferences settings = PreferenceManager.getDefaultSharedPreferences(this);
-        for (int xx = 0; xx < view.game.grid.field.length; xx++) {
-            for (int yy = 0; yy < view.game.grid.field[0].length; yy++) {
-                int value = settings.getInt(xx + " " + yy, -1);
-                if (value > 0) {
-                    view.game.grid.field[xx][yy] = new Tile(xx, yy, value);
-                } else if (value == 0) {
-                    view.game.grid.field[xx][yy] = null;
-                }
-
-                int undoValue = settings.getInt(UNDO_GRID + xx + " " + yy, -1);
-                if (undoValue > 0) {
-                    view.game.grid.undoField[xx][yy] = new Tile(xx, yy, undoValue);
-                } else if (value == 0) {
-                    view.game.grid.undoField[xx][yy] = null;
-                }
-            }
-        }
-
-        view.game.score = settings.getLong(SCORE, view.game.score);
-        view.game.highScore = settings.getLong(HIGH_SCORE, view.game.highScore);
-        view.game.lastScore = settings.getLong(UNDO_SCORE, view.game.lastScore);
-        view.game.canUndo = settings.getBoolean(CAN_UNDO, view.game.canUndo);
-        view.game.gameState = settings.getInt(GAME_STATE, view.game.gameState);
-        view.game.lastGameState = settings.getInt(UNDO_GAME_STATE, view.game.lastGameState);
-        view.game.moveNumber = settings.getInt(MOVE_COUNT, view.game.moveNumber);
-        view.game.gameId = UUID.fromString(settings.getString(GAME_ID, view.game.gameId.toString()));
     }
 
     /**
@@ -230,5 +196,12 @@ public class MainActivity extends AppCompatActivity {
                 }
             });
         }
+    }
+
+    public static void copyText(String text, Context c) {
+        ClipboardManager clipboard = (ClipboardManager) c.getSystemService(Context.CLIPBOARD_SERVICE);
+        ClipData clip = ClipData.newPlainText("label", text);
+        if (clipboard == null || clip == null) return;
+        clipboard.setPrimaryClip(clip);
     }
 }

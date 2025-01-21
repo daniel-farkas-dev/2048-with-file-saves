@@ -4,8 +4,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
-import androidx.annotation.NonNull;
-
 import com.tpcstld.twozerogame.snapshot.SnapshotData;
 import com.tpcstld.twozerogame.snapshot.SnapshotManager;
 
@@ -56,7 +54,6 @@ public class MainGame {
     long highScore = 0;
     long lastScore = 0;
     private long bufferScore = 0;
-    private final String fileHeader = "{\n \"version\": 1,\n";
     private File stateFile;
     public int moveNumber = 1;
 
@@ -97,6 +94,11 @@ public class MainGame {
     }
 
     void newGame(){
+        //If there is a game file, offer to save or export it
+        if(stateFile != null && stateFile.exists()){
+            MainActivity.copyText(stateFile.toString(), mContext);
+            return;
+        }
         if (grid == null) {
             grid = new Grid(numSquaresX, numSquaresY);
         } else {
@@ -131,6 +133,7 @@ public class MainGame {
         stateFile = new File(mContext.getFilesDir(),gameId.toString()+".json");
         try {
             FileWriter writer = new FileWriter(stateFile, true);
+            String fileHeader = "{\n \"version\": 1,\n";
             writer.write(fileHeader);
             writer.write("\"ID\": \"" + gameId.toString() + "\",\n \"moves\": [\n");
             writer.close();
@@ -252,7 +255,6 @@ public class MainGame {
             mView.refreshLastTime = true;
             mView.invalidate();
             saveState();
-            //TODO: Maybe add a flag in file
         }
     }
 

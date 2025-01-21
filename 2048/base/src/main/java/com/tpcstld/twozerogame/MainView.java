@@ -1,5 +1,10 @@
 package com.tpcstld.twozerogame;
 
+import static android.content.Context.CLIPBOARD_SERVICE;
+import static androidx.core.content.ContextCompat.getSystemService;
+
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
@@ -568,5 +573,4 @@ public class MainView extends View {
     private int centerText() {
         return (int) ((paint.descent() + paint.ascent()) / 2);
     }
-
 }
